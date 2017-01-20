@@ -29,7 +29,7 @@ class Follower:
         try:
             self.current_victim = self.victims.pop()
         except IndexError:
-            raise IndexError("We're all out of victims!")
+            raise NoVictimsException()
 
     def move(self):
         if self.location == self.current_victim.location:
