@@ -94,7 +94,7 @@ if __name__ == '__main__':
     victim = Victim(random_directory('~'))
     follower = Follower(random_directory('~'), victim)
 
-    while True:
+    while not victim.dead:
         time.sleep(random.random())
         victim.move()
         time.sleep(follower.speed)
