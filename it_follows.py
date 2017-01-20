@@ -37,6 +37,7 @@ class Follower:
         elif self.current_victim is not None:
             self.location = route_to_dir(self.location,
                                          self.current_victim.location)
+            print('Follower location: {}'.format(self.location))
         else:
             raise NoVictimsException()
 
@@ -49,27 +50,27 @@ class Follower:
 
 
 class Victim:
-    def __init__(self, starting_location):
+    def __init__(self, starting_location, transmission_chance=.25):
         # `starting_location` is a string representing a file system path.
         self.location = starting_location
         self.dead = False
+        self.transmission_chance = transmission_chance
 
     def move(self):
         """Move to a random location in the file system."""
-        self.location = random.choice(valid_destinations(self.location))
+        self.location = op.abspath(
+            op.join('.', random.choice(valid_destinations(self.location)))
+        )
+        print('Victim location: {}'.format(self.location))
 
-    def infect(self, follower):
+    def transmit(self, follower):
         new_victim = Victim(self.location)
         follower.next_victim(new_victim)
         return new_victim
 
 
-def valid_destinations(a_dir):
-    dests = ['..']
-    return dests + [
-        name for name in os.listdir(a_dir)
-        if os.path.isdir(os.path.join(a_dir, name))
-    ]
+def random_directory(root):
+    return op.join(root, random.choice(subdirs(root)))
 
 
 def route_to_dir(target, destination):
@@ -86,17 +87,30 @@ def route_to_dir(target, destination):
         return op.join(common_parent, relpath.parts[0])
 
 
-def random_directory(root):
-    return random.choice(os.listdir(root))
+def subdirs(root):
+    return [
+        name for name in os.listdir(root)
+        if op.isdir(op.join(root, name))
+    ]
+
+
+def valid_destinations(a_dir):
+    dests = ['..']
+    return dests + subdirs(a_dir)
 
 
 if __name__ == '__main__':
-    victim = Victim(random_directory('~'))
-    follower = Follower(random_directory('~'), victim)
+    root_dir = op.expanduser('~')
+    victim = Victim(random_directory(root_dir))
+    follower = Follower(random_directory(root_dir), victim)
 
     while not victim.dead:
         time.sleep(random.random())
         victim.move()
+
+        if random.random() >= victim.transmission_chance:
+            victim.transmit(follower)
+
         time.sleep(follower.speed)
         follower.move()
 
